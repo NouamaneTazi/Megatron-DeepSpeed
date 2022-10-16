@@ -71,10 +71,6 @@ class MixedFusedLayerNorm(torch.nn.Module):
   def __init__(self, normalized_shape, eps=1e-5):
     super(MixedFusedLayerNorm, self).__init__()
 
-    global fused_mix_prec_layer_norm_cuda
-    fused_mix_prec_layer_norm_cuda = importlib.import_module(
-      "fused_mix_prec_layer_norm_cuda")
-
     if isinstance(normalized_shape, numbers.Integral):
         normalized_shape = (normalized_shape,)
     self.normalized_shape = torch.Size(normalized_shape)
@@ -91,6 +87,12 @@ class MixedFusedLayerNorm(torch.nn.Module):
     #   or version.parse(torch.__version__) >= version.parse("1.11.0") # https://github.com/pytorch/pytorch/pull/66920
     # )
     self.use_meg_ds_fused_layer_norm = False
+
+    if self.use_meg_ds_fused_layer_norm:
+        global fused_mix_prec_layer_norm_cuda
+        fused_mix_prec_layer_norm_cuda = importlib.import_module(
+          "fused_mix_prec_layer_norm_cuda")
+
 
   def reset_parameters(self):
 

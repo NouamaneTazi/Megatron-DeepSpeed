@@ -187,49 +187,51 @@ def _compile_dependencies():
     # Load fused kernels
     # ==================
 
-    # Custom kernel constraints check.
-    seq_len = args.seq_length
-    attn_batch_size = \
-        (args.num_attention_heads / args.tensor_model_parallel_size) * \
-        args.micro_batch_size
-    # Constraints on sequence length and attn_batch_size to enable warp based
-    # optimization and upper triangular optimization (for causal mask)
-    custom_kernel_constraint = seq_len > 16 and seq_len <=2048 and \
-        seq_len % 4 == 0 and attn_batch_size % 4 == 0
-    # Print a warning.
-    if not ((args.fp16 or args.bf16) and
-            custom_kernel_constraint and
-            args.masked_softmax_fusion):
-        if args.rank == 0:
-            error = "constraints for invoking optimized fused softmax kernel are not met"
-            if args.abort_on_unmet_fused_kernel_constraints:
-                sys.exit(f"\n\nERROR: {error} and --abort-on-unmet-fused-kernel-constraints was passed. Aborting.\n\n")
-            else:
-                print(f'WARNING: {error}. We default back to unfused kernel invocations.', flush=True)
+    # # Custom kernel constraints check.
+    # seq_len = args.seq_length
+    # attn_batch_size = \
+    #     (args.num_attention_heads / args.tensor_model_parallel_size) * \
+    #     args.micro_batch_size
+    # # Constraints on sequence length and attn_batch_size to enable warp based
+    # # optimization and upper triangular optimization (for causal mask)
+    # custom_kernel_constraint = seq_len > 16 and seq_len <=2048 and \
+    #     seq_len % 4 == 0 and attn_batch_size % 4 == 0
+    # # Print a warning.
+    # if not ((args.fp16 or args.bf16) and
+    #         custom_kernel_constraint and
+    #         args.masked_softmax_fusion):
+    #     if args.rank == 0:
+    #         error = "constraints for invoking optimized fused softmax kernel are not met"
+    #         if args.abort_on_unmet_fused_kernel_constraints:
+    #             sys.exit(f"\n\nERROR: {error} and --abort-on-unmet-fused-kernel-constraints was passed. Aborting.\n\n")
+    #         else:
+    #             print(f'WARNING: {error}. We default back to unfused kernel invocations.', flush=True)
 
-    # Always build on rank zero first.
-    if torch.distributed.get_rank() == 0:
-        start_time = time.time()
-        print('> compiling and loading fused kernels ...', flush=True)
-        fused_kernels.load(args)
-        torch.distributed.barrier()
-    else:
-        torch.distributed.barrier()
-        import warnings
-        with warnings.catch_warnings():
-            # ignore loading noise
-            warnings.simplefilter("ignore")
-            fused_kernels.load(args)
+    # # Always build on rank zero first.
+    # if torch.distributed.get_rank() == 0:
+    #     start_time = time.time()
+    #     print('> compiling and loading fused kernels ...', flush=True)
+    #     fused_kernels.load(args)
+    #     torch.distributed.barrier()
+    # else:
+    #     torch.distributed.barrier()
+    #     import warnings
+    #     with warnings.catch_warnings():
+    #         # ignore loading noise
+    #         warnings.simplefilter("ignore")
+    #         fused_kernels.load(args)
 
-    # Simple barrier to make sure all ranks have passed the
-    # compilation phase successfully before moving on to the
-    # rest of the program. We think this might ensure that
-    # the lock is released.
-    torch.distributed.barrier()
-    if torch.distributed.get_rank() == 0:
-        print('>>> done with compiling and loading fused kernels. '
-              'Compilation time: {:.3f} seconds'.format(
-                  time.time() - start_time), flush=True)
+    # # Simple barrier to make sure all ranks have passed the
+    # # compilation phase successfully before moving on to the
+    # # rest of the program. We think this might ensure that
+    # # the lock is released.
+    # torch.distributed.barrier()
+    # if torch.distributed.get_rank() == 0:
+    #     print('>>> done with compiling and loading fused kernels. '
+    #           'Compilation time: {:.3f} seconds'.format(
+    #               time.time() - start_time), flush=True)
+
+    print('> WARNING: fused kernels are not used ...', flush=True)
 
 
 def setup_deepspeed_random_and_activation_checkpointing(args):
