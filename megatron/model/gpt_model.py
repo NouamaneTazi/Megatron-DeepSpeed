@@ -222,14 +222,20 @@ class GPTModelPipe(PipelineModule,MegatronModule):
         self.specs.append(_to_float16)
 
         # Embedding layer
-        self.specs.append(TiedLayerSpec('embed',
-                                        EmbeddingPipe,
+        # self.specs.append(TiedLayerSpec('embed',
+        #                                 EmbeddingPipe,
+        #                                 args.hidden_size,
+        #                                 args.padded_vocab_size,
+        #                                 args.hidden_dropout,
+        #                                 init_method=init_method,
+        #                                 num_tokentypes=num_tokentypes,
+        #                                 tied_weight_attr='word_embeddings_weight'))
+        self.specs.append(LayerSpec(EmbeddingPipe,
                                         args.hidden_size,
                                         args.padded_vocab_size,
                                         args.hidden_dropout,
                                         init_method=init_method,
-                                        num_tokentypes=num_tokentypes,
-                                        tied_weight_attr='word_embeddings_weight'))
+                                        num_tokentypes=num_tokentypes))
 
         if args.fp32_residual_connection:
             if getattr(args, 'pretrain_causal_attention', False):
@@ -274,16 +280,24 @@ class GPTModelPipe(PipelineModule,MegatronModule):
                 embedding.word_embeddings_weight,
                 self.parallel_output)
 
+        # self.specs.append(
+        #     TiedLayerSpec('embed',
+        #                   EmbeddingPipe,
+        #                   args.hidden_size,
+        #                   args.padded_vocab_size,
+        #                   args.hidden_dropout,
+        #                   init_method=init_method,
+        #                   num_tokentypes=num_tokentypes,
+        #                   forward_fn=_logits_helper,
+        #                   tied_weight_attr='word_embeddings_weight')
+        # )
         self.specs.append(
-            TiedLayerSpec('embed',
-                          EmbeddingPipe,
-                          args.hidden_size,
-                          args.padded_vocab_size,
-                          args.hidden_dropout,
-                          init_method=init_method,
-                          num_tokentypes=num_tokentypes,
-                          forward_fn=_logits_helper,
-                          tied_weight_attr='word_embeddings_weight')
+            LayerSpec(EmbeddingPipe,
+                        args.hidden_size,
+                        args.padded_vocab_size,
+                        args.hidden_dropout,
+                        init_method=init_method,
+                        num_tokentypes=num_tokentypes)
         )
 
         # Convert to fp32 if needed
